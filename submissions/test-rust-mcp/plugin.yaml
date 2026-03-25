@@ -1,0 +1,41 @@
+schema_version: 2
+name: test-rust-mcp
+version: "0.1.0"
+description: "Test Rust MCP server for build pipeline verification"
+author:
+  name: "Plugin Store Team"
+  github: "yz06276"
+license: MIT
+category: utility
+tags:
+  - test
+  - rust
+  - mcp
+
+components:
+  skill:
+    dir: skills/test-rust-mcp
+  mcp:
+    type: binary
+    command: test-rust-mcp
+    args: ["--stdio"]
+
+build:
+  lang: rust
+  source_repo: "yz06276/plugin-build-tests"
+  source_commit: "342756ee25405b5ec5b375a37c1b36710d5b9cd6"
+  source_dir: "rust-mcp"
+  binary_name: test-rust-mcp
+
+permissions:
+  wallet:
+    read_balance: false
+    send_transaction: false
+    sign_message: false
+    contract_call: false
+  network:
+    api_calls: []
+    onchainos_commands:
+      - "token search"
+  chains:
+    - ethereum
