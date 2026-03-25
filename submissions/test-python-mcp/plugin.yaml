@@ -1,0 +1,33 @@
+schema_version: 2
+name: test-python-mcp
+version: "0.1.0"
+description: "Test Python MCP server for build pipeline verification"
+author:
+  name: "Plugin Store Team"
+  github: "yz06276"
+license: MIT
+category: utility
+tags: [test, python, mcp]
+components:
+  skill:
+    dir: skills/test-python-mcp
+  mcp:
+    type: binary
+    command: test-python-mcp
+    args: ["--stdio"]
+build:
+  lang: python
+  source_repo: "yz06276/plugin-build-tests"
+  source_commit: "342756ee25405b5ec5b375a37c1b36710d5b9cd6"
+  source_dir: "python-mcp"
+  binary_name: test-python-mcp
+  main: src/main.py
+permissions:
+  wallet:
+    read_balance: false
+    send_transaction: false
+    sign_message: false
+    contract_call: false
+  network:
+    onchainos_commands: ["token search"]
+  chains: [ethereum]
