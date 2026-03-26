@@ -60,7 +60,7 @@ onchainos token search --query "ETH" --chain ethereum
 **When to use**: when the user asks to find a token.
 ```
 
-> **Important:** All plugins must use [onchainos CLI](https://github.com/okx/onchainos-skills) for on-chain operations (price queries, swaps, wallet interactions, etc.). Do not implement your own blockchain RPC calls, web3 libraries, or direct API integrations. Plugins that bypass onchainos will be rejected during review.
+> **Important:** All on-chain interactions — wallet signing, transaction broadcasting, swap execution, contract calls — **must** use [onchainos CLI](https://github.com/okx/onchainos-skills). You are free to query external data sources (third-party DeFi APIs, market data providers, etc.), but any action that touches the blockchain must go through onchainos. Plugins that bypass onchainos for on-chain operations will be rejected.
 
 ### Step 3: Check locally
 

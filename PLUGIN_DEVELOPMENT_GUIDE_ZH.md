@@ -80,7 +80,7 @@ plugin 有一个必须的核心：**SKILL.md** — 一个 Markdown 文档，教 
 
 ### 核心规则
 
-> **所有 plugin 必须通过 onchainos CLI 进行链上操作。** 不允许自行实现价格查询、钱包签名、交易构建或 RPC 调用。onchainos 已经提供了所有这些能力 — 你的 plugin 只需告诉 AI Agent 如何以及何时使用它们。
+> **所有链上交互操作必须通过 onchainos CLI。** 包括：钱包签名、交易广播、Swap 执行、合约调用等任何写入区块链的操作。你**可以自由**查询外部数据源（第三方 DeFi API、行情数据提供商、分析服务等），但任何链上操作必须走 onchainos。绕过 onchainos 进行链上操作的 plugin 将被拒绝。
 
 ---
 
@@ -571,7 +571,7 @@ Phase 3：AI 代码审查（Claude）
 - 包含 binary 组件（代码执行）
 - 包含 Binary 组件（代码执行）
 - 使用保留名称前缀（`okx-`、`official-`、`plugin-store-`）
-- 绕过 onchainos CLI（使用直接 RPC、外部价格 API、web3 库）
+- 绕过 onchainos CLI 进行链上操作（钱包签名、交易广播、合约调用等）
 - 包含 prompt injection 模式
 - 超过文件大小限制（单文件 100KB，总计 1MB）
 
@@ -766,7 +766,7 @@ your-username/my-binary-tool ← 你自己的 GitHub 仓库（源码）
 ## 15. 常见问题
 
 **Q: 我可以直接调用外部 API 吗？**
-A: 不可以。所有链上操作必须通过 onchainos CLI。如果你需要 onchainos 尚未提供的能力，请在 onchainos 仓库提交 feature request。
+A: 查询外部数据源是允许的（第三方 DeFi API、行情数据等）。但所有链上交互操作（签名、广播、Swap、合约调用）必须通过 onchainos CLI。如果你需要 onchainos 尚未提供的链上能力，请在 onchainos 仓库提交 feature request。
 
 **Q: 我可以包含binary 吗？**
 A: 可以。任何开发者都可以提交 Binary 源码。将源码放在你自己的 GitHub 仓库中，在 plugin.yaml 中添加 `build` 配置，包含 `source_repo` 和 `source_commit`。我们的 CI 负责编译。详见第 13 节。

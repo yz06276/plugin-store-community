@@ -76,7 +76,7 @@ Choose your path before starting:
 
 ### Key Rule
 
-> **All plugins must use onchainos CLI for on-chain operations.** You cannot implement your own price queries, wallet signing, transaction building, or RPC calls. onchainos provides all of these — your plugin tells the AI agent how and when to use them.
+> **All on-chain interactions must use onchainos CLI.** This includes: wallet signing, transaction broadcasting, swap execution, contract calls, and any action that writes to the blockchain. You **are free** to query external data sources (third-party DeFi APIs, market data providers, analytics services, etc.) — but any on-chain action must go through onchainos. Plugins that bypass onchainos for on-chain operations will be rejected.
 
 ---
 
