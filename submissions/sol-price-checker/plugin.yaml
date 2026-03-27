@@ -1,0 +1,40 @@
+schema_version: 1
+name: sol-price-checker
+alias: "Solana 价格查询"
+version: "1.0.0"
+description: "Query real-time token prices on Solana with market data and trend analysis"
+author:
+  name: "Demo Developer"
+  github: "yz06276"
+license: MIT
+category: analytics
+tags:
+  - solana
+  - price
+  - analytics
+  - token
+
+components:
+  skill:
+    dir: skills/sol-price-checker
+
+permissions:
+  wallet:
+    read_balance: false
+    send_transaction: false
+    sign_message: false
+    contract_call: false
+  network:
+    api_calls: []
+    onchainos_commands:
+      - "token search"
+      - "token info"
+      - "market price"
+      - "market kline"
+      - "token trending"
+  chains:
+    - solana
+
+extra:
+  protocols: []
+  risk_level: low
