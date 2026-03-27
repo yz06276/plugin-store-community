@@ -2,7 +2,7 @@
 name: sol-token-guard
 description: "Comprehensive Solana token safety analysis — security scan, holder distribution, and risk scoring"
 version: "1.0.0"
-author: "oker"
+author: "ganlinux"
 tags:
   - solana
   - security

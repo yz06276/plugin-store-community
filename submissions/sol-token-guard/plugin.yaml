@@ -4,9 +4,8 @@ alias: "Solana Token Safety Guard"
 version: "1.0.0"
 description: "Comprehensive Solana token safety analysis — security scan, holder distribution, and risk scoring"
 author:
-  name: "oker"
-  github: "oker"
-  email: "oker@example.com"
+  name: "ganlinux"
+  github: "ganlinux"
 license: MIT
 category: security
 tags:
