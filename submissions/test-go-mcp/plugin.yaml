@@ -1,0 +1,32 @@
+schema_version: 2
+name: test-go-mcp
+version: "0.1.0"
+description: "Test Go MCP server for build pipeline verification"
+author:
+  name: "Plugin Store Team"
+  github: "yz06276"
+license: MIT
+category: utility
+tags: [test, go, mcp]
+components:
+  skill:
+    dir: skills/test-go-mcp
+  mcp:
+    type: binary
+    command: test-go-mcp
+    args: ["--stdio"]
+build:
+  lang: go
+  source_repo: "yz06276/plugin-build-tests"
+  source_commit: "342756ee25405b5ec5b375a37c1b36710d5b9cd6"
+  source_dir: "go-mcp"
+  binary_name: test-go-mcp
+permissions:
+  wallet:
+    read_balance: false
+    send_transaction: false
+    sign_message: false
+    contract_call: false
+  network:
+    onchainos_commands: ["token search"]
+  chains: [ethereum]
