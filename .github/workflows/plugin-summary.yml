@@ -1,8 +1,8 @@
-# Phase 6: AI Review + Summary Generation + Pre-flight Injection
+# Phase 4: AI Review + Summary Generation + Pre-flight Injection
 # Requires maintainer approval via "summary-generation" environment.
 # All Claude API calls are here — no automatic API spend on PR pushes.
 
-name: "Phase 6: Review + Summary"
+name: "Phase 4: Generate Summary"
 
 on:
   pull_request_target:
@@ -176,7 +176,7 @@ jobs:
             try { preflightMd = fs.readFileSync('/tmp/preflight_injected.txt', 'utf8'); } catch(e) {}
 
             const sections = [];
-            sections.push(`## Phase 6: Summary + Pre-flight for \`${pluginName}\``);
+            sections.push(`## Phase 4: Summary + Pre-flight for \`${pluginName}\``);
             sections.push('', '> Review below. AI Code Review is in a separate check.', '', '---', '');
             if (summaryMd) {
               sections.push('<details>', '<summary><strong>SUMMARY.md</strong></summary>', '', summaryMd, '', '</details>', '');
@@ -194,7 +194,7 @@ jobs:
               owner: context.repo.owner, repo: context.repo.repo,
               issue_number: ${{ github.event.pull_request.number }},
             });
-            const existing = comments.find(c => c.user.type === 'Bot' && c.body.includes('Phase 6:'));
+            const existing = comments.find(c => c.user.type === 'Bot' && c.body.includes('Phase 4:'));
             const params = { owner: context.repo.owner, repo: context.repo.repo, body };
             if (existing) {
               await github.rest.issues.updateComment({ ...params, comment_id: existing.id });
