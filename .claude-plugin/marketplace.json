@@ -1,11 +1,21 @@
 {
   "name": "okx-plugin-store-community",
-  "description": "Community plugins for OKX Plugin Store — trading strategies, DeFi integrations, and developer tools.",
+  "description": "Community plugins for OKX Plugin Store.",
   "owner": {
     "name": "OKX",
     "email": "plugin-store@okx.com"
   },
   "plugins": [
+    {
+      "name": "e2e-go-cli",
+      "description": "E2E test plugin: Go echo CLI that prints arguments back",
+      "source": "./skills/e2e-go-cli"
+    },
+    {
+      "name": "e2e-rust-cli",
+      "description": "E2E test plugin: Rust echo CLI that prints arguments back",
+      "source": "./skills/e2e-rust-cli"
+    },
     {
       "name": "meme-trench-scanner",
       "description": "Meme Trench Scanner v1.0 — Solana Meme automated trading bot with 11 Launchpad coverage, 7-layer exit system, TraderSoul AI observation",
