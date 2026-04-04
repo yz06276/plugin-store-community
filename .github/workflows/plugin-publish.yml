@@ -119,7 +119,7 @@ jobs:
             case "$BUILD_LANG" in typescript|node|python) continue ;; esac
 
             VERSION=$(yq '.version' "$YAML")
-            RELEASE_TAG="community/${PLUGIN_NAME}@${VERSION}"
+            RELEASE_TAG="plugins/${PLUGIN_NAME}@${VERSION}"
             if echo "$EXISTING_TAGS" | grep -qF "$RELEASE_TAG"; then
               echo "Release exists: $RELEASE_TAG — skipping"
               continue
@@ -411,7 +411,7 @@ jobs:
             if ls ${BIN}-* 1>/dev/null 2>&1; then
               sha256sum ${BIN}-* > checksums.txt
 
-              TAG="community/${NAME}@${VERSION}"
+              TAG="plugins/${NAME}@${VERSION}"
               TITLE="${NAME} v${VERSION} (community)"
               NOTES="Source: $(echo "$PLUGIN" | jq -r '.source_repo')@$(echo "$PLUGIN" | jq -r '.source_commit')"
 
@@ -550,7 +550,7 @@ jobs:
                       "repo": "okx/plugin-store-community",
                       "asset_pattern": bin_name + "-{target}",
                       "checksums_asset": "checksums.txt",
-                      "release_tag": f"community/{name}@{version}"
+                      "release_tag": f"plugins/{name}@{version}"
                   }
 
           print(json.dumps(entry))

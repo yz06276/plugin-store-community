@@ -90,7 +90,7 @@ if ! command -v {bin_name} >/dev/null 2>&1; then
     linux_x86_64)  TARGET="x86_64-unknown-linux-gnu" ;;
     linux_aarch64) TARGET="aarch64-unknown-linux-gnu" ;;
   esac
-  curl -fsSL "https://github.com/okx/plugin-store-community/releases/download/community/{name}@{version}/{bin_name}-${{TARGET}}" -o ~/.local/bin/{bin_name}
+  curl -fsSL "https://github.com/okx/plugin-store-community/releases/download/plugins/{name}@{version}/{bin_name}-${{TARGET}}" -o ~/.local/bin/{bin_name}
   chmod +x ~/.local/bin/{bin_name}
 fi
 ```
