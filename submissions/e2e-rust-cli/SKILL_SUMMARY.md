@@ -2,10 +2,10 @@
 # e2e-rust-cli -- Skill Summary
 
 ## Overview
-This is a simple Rust-based CLI tool designed for end-to-end testing purposes. It provides basic echo functionality that takes command-line arguments and prints them back, making it useful for validating plugin installation, execution workflows, and CLI integration testing.
+This is a simple Rust-based CLI utility designed specifically for end-to-end testing scenarios. It provides basic echo functionality by taking command-line arguments and printing them back to stdout, making it ideal for verifying CLI plugin installations, testing argument passing, and validating execution workflows in automated testing environments.
 
 ## Usage
-Install the `e2e-rust-cli` binary and verify it's available in your PATH with `which e2e-rust-cli`. Run commands by passing arguments that will be echoed back.
+Install the `e2e-rust-cli` binary and verify it's available with `which e2e-rust-cli`. Use it by running `e2e-rust-cli <arguments>` where the arguments will be echoed back as output.
 
 ## Commands
 | Command | Description | Example |
@@ -13,4 +13,4 @@ Install the `e2e-rust-cli` binary and verify it's available in your PATH with `w
 | `e2e-rust-cli <text>` | Echoes the provided text back to stdout | `e2e-rust-cli hello` outputs "hello" |
 
 ## Triggers
-An AI agent should activate this skill when performing E2E testing, validating CLI plugin functionality, or when specifically requested to test the e2e-rust-cli plugin.
+An AI agent should use this skill when conducting end-to-end tests of CLI functionality or when needing to verify that Rust-based CLI tools are properly installed and executable in the environment.
