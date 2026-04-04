@@ -166,8 +166,8 @@ jobs:
 
           # Append name uniqueness result
           if [ "${{ steps.name_check.outputs.duplicate }}" = "true" ]; then
-            OUTPUT="${OUTPUT}
-  ❌ [E034] name '${{ needs.detect-plugin.outputs.plugin_name }}' already exists in registry"
+            DUPE_MSG="  E034: name '${{ needs.detect-plugin.outputs.plugin_name }}' already exists in registry"
+            OUTPUT=$(printf '%s\n%s' "$OUTPUT" "$DUPE_MSG")
             EXIT_CODE=1
           fi
 
