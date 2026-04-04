@@ -416,9 +416,17 @@ jobs:
               NOTES="Source: $(echo "$PLUGIN" | jq -r '.source_repo')@$(echo "$PLUGIN" | jq -r '.source_commit')"
 
               # Release on THIS repo (community), not plugin-store
-              gh release create "$TAG" --title "$TITLE" --notes "$NOTES" ${BIN}-* checksums.txt 2>/dev/null || \
-              gh release upload "$TAG" --clobber ${BIN}-* checksums.txt 2>/dev/null || true
-              echo "Release created: $TAG (on community repo)"
+              echo "Creating release: $TAG with $(ls ${BIN}-* | wc -l) binaries"
+              gh release create "$TAG" \
+                --repo "${{ github.repository }}" \
+                --title "$TITLE" \
+                --notes "$NOTES" \
+                ${BIN}-* checksums.txt 2>&1 || \
+              gh release upload "$TAG" \
+                --repo "${{ github.repository }}" \
+                --clobber ${BIN}-* checksums.txt 2>&1 || \
+              echo "::warning::Release create/upload failed for $TAG"
+              echo "Release done: $TAG"
             fi
             cd /tmp
           done
