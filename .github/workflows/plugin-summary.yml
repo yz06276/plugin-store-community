@@ -195,14 +195,221 @@ PROMPT
           echo "$SKILL_SUMMARY_MD" > /tmp/skill_summary_md.txt
           echo "done=true" >> "$GITHUB_OUTPUT"
 
+      # ── Dependency scan + pre-flight injection ──────────────────
+      - name: Scan dependencies and inject pre-flight
+        if: steps.skill.outputs.found == 'true'
+        id: preflight
+        run: |
+          NAME="${{ needs.detect.outputs.plugin_name }}"
+          PLUGIN_DIR="${{ needs.detect.outputs.plugin_dir }}"
+          YAML="${PLUGIN_DIR}/plugin.yaml"
+
+          # Find the SKILL.md that will be installed (in skills/ dir)
+          SKILL_FILE=$(find "${PLUGIN_DIR}" -name "SKILL.md" -type f | head -1)
+          if [ -z "$SKILL_FILE" ]; then
+            echo "No SKILL.md to patch"
+            echo "patched=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "Scanning: $SKILL_FILE"
+          SKILL_TEXT=$(cat "$SKILL_FILE")
+          ALL_TEXT="$SKILL_TEXT"
+
+          # Also scan source code files for dependencies
+          for ext in py rs go ts js; do
+            for src in $(find "${PLUGIN_DIR}" -name "*.${ext}" -type f 2>/dev/null); do
+              ALL_TEXT="${ALL_TEXT}$(cat "$src")"
+            done
+          done
+
+          # ── Detect dependencies ──
+          NEEDS_ONCHAINOS=false
+          NEEDS_BINARY=false
+          NEEDS_PIP=false
+          NEEDS_NPM=false
+          BUILD_LANG=""
+
+          # onchainos dependency
+          if echo "$ALL_TEXT" | grep -qi "onchainos"; then
+            NEEDS_ONCHAINOS=true
+            echo "  Dependency detected: onchainos"
+          fi
+
+          # Build/binary dependency from plugin.yaml
+          if [ -f "$YAML" ]; then
+            BUILD_LANG=$(yq '.build.lang // ""' "$YAML" 2>/dev/null || echo "")
+            if [ -n "$BUILD_LANG" ]; then
+              case "$BUILD_LANG" in
+                rust|go) NEEDS_BINARY=true; echo "  Dependency detected: binary ($BUILD_LANG)" ;;
+                python) NEEDS_PIP=true; echo "  Dependency detected: pip ($BUILD_LANG)" ;;
+                typescript|node) NEEDS_NPM=true; echo "  Dependency detected: npm ($BUILD_LANG)" ;;
+              esac
+            fi
+          fi
+
+          if [ "$NEEDS_ONCHAINOS" = "false" ] && [ "$NEEDS_BINARY" = "false" ] && \
+             [ "$NEEDS_PIP" = "false" ] && [ "$NEEDS_NPM" = "false" ]; then
+            echo "  No dependencies detected, skipping pre-flight injection"
+            echo "patched=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # ── Check what the existing pre-flight already installs ──
+          HAS_ONCHAINOS_INSTALL=false
+          HAS_BINARY_INSTALL=false
+          HAS_PIP_INSTALL=false
+          HAS_NPM_INSTALL=false
+
+          if echo "$SKILL_TEXT" | grep -qiE "install.*onchainos|onchainos.*install|skills add.*onchainos|curl.*onchainos"; then
+            HAS_ONCHAINOS_INSTALL=true
+            echo "  Existing: onchainos install found"
+          fi
+          if echo "$SKILL_TEXT" | grep -qiE "curl.*releases/download|wget.*releases/download"; then
+            HAS_BINARY_INSTALL=true
+            echo "  Existing: binary install found"
+          fi
+          if echo "$SKILL_TEXT" | grep -qiE "pip install|pip3 install"; then
+            HAS_PIP_INSTALL=true
+            echo "  Existing: pip install found"
+          fi
+          if echo "$SKILL_TEXT" | grep -qiE "npm install -g|npx.*install"; then
+            HAS_NPM_INSTALL=true
+            echo "  Existing: npm install found"
+          fi
+
+          # ── Build the pre-flight block to inject ──
+          INJECT=""
+
+          if [ "$NEEDS_ONCHAINOS" = "true" ] && [ "$HAS_ONCHAINOS_INSTALL" = "false" ]; then
+            INJECT="${INJECT}
+### Install onchainos CLI (auto-injected)
+
+\`\`\`bash
+onchainos --version 2>/dev/null || curl -fsSL https://raw.githubusercontent.com/okx/onchainos-skills/main/install.sh | sh
+\`\`\`
+"
+            echo "  Injecting: onchainos install"
+          fi
+
+          if [ "$NEEDS_BINARY" = "true" ] && [ "$HAS_BINARY_INSTALL" = "false" ]; then
+            BIN_NAME=$(yq '.build.binary_name // ""' "$YAML" 2>/dev/null || echo "$NAME")
+            VERSION=$(yq '.version // "1.0.0"' "$YAML" 2>/dev/null || echo "1.0.0")
+            INJECT="${INJECT}
+### Install ${BIN_NAME} binary (auto-injected)
+
+\`\`\`bash
+if ! command -v ${BIN_NAME} >/dev/null 2>&1; then
+  OS=\$(uname -s | tr A-Z a-z)
+  ARCH=\$(uname -m)
+  case \"\${OS}_\${ARCH}\" in
+    darwin_arm64)  TARGET=\"aarch64-apple-darwin\" ;;
+    darwin_x86_64) TARGET=\"x86_64-apple-darwin\" ;;
+    linux_x86_64)  TARGET=\"x86_64-unknown-linux-gnu\" ;;
+    linux_aarch64) TARGET=\"aarch64-unknown-linux-gnu\" ;;
+  esac
+  curl -fsSL \"https://github.com/okx/plugin-store-community/releases/download/community/${NAME}@${VERSION}/${BIN_NAME}-\${TARGET}\" -o ~/.local/bin/${BIN_NAME}
+  chmod +x ~/.local/bin/${BIN_NAME}
+fi
+\`\`\`
+"
+            echo "  Injecting: binary install (${BIN_NAME})"
+          fi
+
+          if [ "$NEEDS_PIP" = "true" ] && [ "$HAS_PIP_INSTALL" = "false" ]; then
+            SRC_REPO=$(yq '.build.source_repo // ""' "$YAML" 2>/dev/null || echo "")
+            SRC_COMMIT=$(yq '.build.source_commit // ""' "$YAML" 2>/dev/null || echo "")
+            if [ -n "$SRC_REPO" ]; then
+              INJECT="${INJECT}
+### Install Python package (auto-injected)
+
+\`\`\`bash
+pip install git+https://github.com/${SRC_REPO}@${SRC_COMMIT} 2>/dev/null || pip3 install git+https://github.com/${SRC_REPO}@${SRC_COMMIT}
+\`\`\`
+"
+              echo "  Injecting: pip install (${SRC_REPO})"
+            fi
+          fi
+
+          if [ "$NEEDS_NPM" = "true" ] && [ "$HAS_NPM_INSTALL" = "false" ]; then
+            SRC_REPO=$(yq '.build.source_repo // ""' "$YAML" 2>/dev/null || echo "")
+            SRC_COMMIT=$(yq '.build.source_commit // ""' "$YAML" 2>/dev/null || echo "")
+            if [ -n "$SRC_REPO" ]; then
+              INJECT="${INJECT}
+### Install npm package (auto-injected)
+
+\`\`\`bash
+npm install -g git+https://github.com/${SRC_REPO}#${SRC_COMMIT}
+\`\`\`
+"
+              echo "  Injecting: npm install (${SRC_REPO})"
+            fi
+          fi
+
+          if [ -z "$INJECT" ]; then
+            echo "  All dependencies already covered in existing pre-flight"
+            echo "patched=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # ── Inject into SKILL.md ──
+          # Strategy: insert after frontmatter (---...---), before first heading
+          python3 << PYEOF
+import re
+
+with open("$SKILL_FILE") as f:
+    content = f.read()
+
+inject_block = """
+## Pre-flight Dependencies (auto-injected by Plugin Store CI)
+
+> Run once per session before first use. These checks ensure required tools are installed.
+$INJECT
+---
+
+"""
+
+# Find insertion point: after frontmatter, before first # heading
+# Frontmatter is between first --- and second ---
+fm_pattern = re.compile(r'^---\n.*?\n---\n', re.DOTALL)
+fm_match = fm_pattern.match(content)
+
+if fm_match:
+    # Check if there's already an auto-injected block
+    if "auto-injected by Plugin Store CI" in content:
+        print("  Already has auto-injected pre-flight, replacing...")
+        content = re.sub(
+            r'## Pre-flight Dependencies \(auto-injected by Plugin Store CI\).*?---\n\n',
+            inject_block,
+            content,
+            flags=re.DOTALL
+        )
+    else:
+        # Insert after frontmatter
+        insert_pos = fm_match.end()
+        content = content[:insert_pos] + "\n" + inject_block + content[insert_pos:]
+else:
+    # No frontmatter, insert at top
+    content = inject_block + content
+
+with open("$SKILL_FILE", "w") as f:
+    f.write(content)
+
+print("  SKILL.md patched successfully")
+PYEOF
+
+          echo "patched=true" >> "$GITHUB_OUTPUT"
+          # Save patched content for PR comment
+          grep -A 50 "auto-injected by Plugin Store CI" "$SKILL_FILE" | head -60 > /tmp/preflight_injected.txt
+
       - name: Push to PR branch
-        if: steps.generate.outputs.done == 'true'
+        if: steps.generate.outputs.done == 'true' || steps.preflight.outputs.patched == 'true'
         run: |
           git config user.name "plugin-store-bot"
           git config user.email "bot@plugin-store.local"
-          git add "${{ needs.detect.outputs.plugin_dir }}/SUMMARY.md" "${{ needs.detect.outputs.plugin_dir }}/SKILL_SUMMARY.md"
+          git add "${{ needs.detect.outputs.plugin_dir }}"
           git diff --staged --quiet && echo "No changes" && exit 0
-          git commit -m "auto: generate SUMMARY.md + SKILL_SUMMARY.md for ${{ needs.detect.outputs.plugin_name }}"
+          git commit -m "auto: generate summaries + inject pre-flight dependencies for ${{ needs.detect.outputs.plugin_name }}"
           git push
 
       - name: Post summary to PR comment
@@ -213,34 +420,57 @@ PROMPT
             const fs = require('fs');
             const pluginName = '${{ needs.detect.outputs.plugin_name }}';
 
-            let summaryMd = '', skillSummaryMd = '';
+            let summaryMd = '', skillSummaryMd = '', preflightMd = '';
             try { summaryMd = fs.readFileSync('/tmp/summary_md.txt', 'utf8'); } catch(e) {}
             try { skillSummaryMd = fs.readFileSync('/tmp/skill_summary_md.txt', 'utf8'); } catch(e) {}
+            try { preflightMd = fs.readFileSync('/tmp/preflight_injected.txt', 'utf8'); } catch(e) {}
 
-            const body = [
-              `## 📝 Phase 6: Generated Summaries for \`${pluginName}\``,
-              '',
-              '> Review the generated content below. If it looks good, merge the PR. If not, push corrections or request changes.',
-              '',
-              '---',
-              '',
-              '<details>',
-              '<summary><strong>SUMMARY.md</strong> (click to expand)</summary>',
-              '',
-              summaryMd,
-              '',
-              '</details>',
-              '',
-              '<details>',
-              '<summary><strong>SKILL_SUMMARY.md</strong> (click to expand)</summary>',
-              '',
-              skillSummaryMd,
-              '',
-              '</details>',
-              '',
-              '---',
-              `*Generated by Claude AI — files pushed to PR branch.*`
-            ].join('\n');
+            const sections = [];
+            sections.push(`## 📝 Phase 6: Generated Content for \`${pluginName}\``);
+            sections.push('');
+            sections.push('> Review the generated content below. If it looks good, merge the PR. If not, push corrections or request changes.');
+            sections.push('');
+            sections.push('---');
+            sections.push('');
+
+            if (summaryMd) {
+              sections.push('<details>');
+              sections.push('<summary><strong>SUMMARY.md</strong></summary>');
+              sections.push('');
+              sections.push(summaryMd);
+              sections.push('');
+              sections.push('</details>');
+              sections.push('');
+            }
+
+            if (skillSummaryMd) {
+              sections.push('<details>');
+              sections.push('<summary><strong>SKILL_SUMMARY.md</strong></summary>');
+              sections.push('');
+              sections.push(skillSummaryMd);
+              sections.push('');
+              sections.push('</details>');
+              sections.push('');
+            }
+
+            if (preflightMd) {
+              sections.push('<details open>');
+              sections.push('<summary><strong>⚙️ Auto-injected Pre-flight Dependencies</strong> (review carefully)</summary>');
+              sections.push('');
+              sections.push('The following dependency installation block was injected into SKILL.md:');
+              sections.push('');
+              sections.push('```markdown');
+              sections.push(preflightMd);
+              sections.push('```');
+              sections.push('');
+              sections.push('</details>');
+              sections.push('');
+            }
+
+            sections.push('---');
+            sections.push(`*Generated by Plugin Store CI — files pushed to PR branch.*`);
+
+            const body = sections.join('\n');
 
             const { data: comments } = await github.rest.issues.listComments({
               owner: context.repo.owner,

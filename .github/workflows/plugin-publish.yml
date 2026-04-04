@@ -246,13 +246,52 @@ jobs:
             rm -rf "/tmp/ext-${NAME}"
           done
 
-      - name: Commit copied skills
+      - name: Regenerate marketplace.json
+        run: |
+          python3 << 'PYEOF'
+          import json, os, re
+
+          plugins = []
+          for name in sorted(os.listdir('skills')):
+              skill_path = os.path.join('skills', name)
+              if not os.path.isdir(skill_path):
+                  continue
+              desc = ''
+              yaml_path = os.path.join('submissions', name, 'plugin.yaml')
+              if os.path.exists(yaml_path):
+                  with open(yaml_path) as f:
+                      for line in f:
+                          m = re.match(r'^description:\s*["\'](.+)["\']\s*$', line)
+                          if m:
+                              desc = m.group(1)
+                              break
+              plugins.append({
+                  'name': name,
+                  'description': desc or f'Plugin: {name}',
+                  'source': f'./skills/{name}'
+              })
+
+          marketplace = {
+              'name': 'okx-plugin-store-community',
+              'description': 'Community plugins for OKX Plugin Store.',
+              'owner': {'name': 'OKX', 'email': 'plugin-store@okx.com'},
+              'plugins': plugins
+          }
+
+          os.makedirs('.claude-plugin', exist_ok=True)
+          with open('.claude-plugin/marketplace.json', 'w') as f:
+              json.dump(marketplace, f, indent=2, ensure_ascii=False)
+              f.write('\n')
+          print(f'marketplace.json: {len(plugins)} plugins')
+          PYEOF
+
+      - name: Commit copied skills + marketplace.json
         run: |
           git config user.name "plugin-store-bot"
           git config user.email "bot@plugin-store.local"
-          git add skills/
-          git diff --staged --quiet && echo "No skills to copy" && exit 0
-          git commit -m "auto: copy plugin skills to community repo"
+          git add skills/ .claude-plugin/marketplace.json
+          git diff --staged --quiet && echo "No changes" && exit 0
+          git commit -m "auto: copy plugin skills + update marketplace.json"
           git push
 
   # ═══════════════════════════════════════════════════════════════
