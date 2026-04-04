@@ -2,12 +2,11 @@
 A simple Rust CLI that echoes back its arguments for E2E testing purposes.
 
 ## Highlights
-- Simple echo functionality for testing CLI integration
-- Built with Rust for reliable performance
-- Lightweight utility for E2E test scenarios
-- Easy verification of plugin installation and execution
-- Minimal dependencies and fast startup
-- Cross-platform compatibility through Rust
-- Direct argument passthrough and output
-- Useful for validating CLI plugin workflows
+- Simple echo functionality for testing
+- Built with Rust for reliability
+- Lightweight CLI tool
+- E2E test reference implementation
+- MIT licensed
+- Easy to verify installation
+- Straightforward command interface
 
