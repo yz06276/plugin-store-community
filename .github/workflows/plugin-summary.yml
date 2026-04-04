@@ -103,26 +103,9 @@ jobs:
           echo "$SKILL_CONTENT" > /tmp/skill_content.txt
           echo "found=true" >> "$GITHUB_OUTPUT"
 
-      # ── Jitter to avoid rate limits when multiple PRs approved at once ──
-      - name: Random jitter
-        run: |
-          JITTER=$(( RANDOM % 60 ))
-          echo "Waiting ${JITTER}s jitter..."
-          sleep "$JITTER"
+      # AI Code Review is handled by plugin-ai-review.yml (same approval gate)
 
-      # ── Step 1: AI Code Review ──
-      - name: AI Code Review
-        if: steps.skill.outputs.found == 'true'
-        id: review
-        env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-        run: |
-          python3 _ci/.github/scripts/ai-review.py \
-            "${{ needs.detect.outputs.plugin_name }}" \
-            "${{ needs.detect.outputs.plugin_dir }}"
-          echo "done=true" >> "$GITHUB_OUTPUT"
-
-      # ── Step 2: Generate SUMMARY + SKILL_SUMMARY ──
+      # ── Step 1: Generate SUMMARY + SKILL_SUMMARY ──
       - name: Generate summaries
         if: steps.skill.outputs.found == 'true'
         id: generate
@@ -175,7 +158,7 @@ jobs:
           git config user.email "bot@plugin-store.local"
           git add "${{ needs.detect.outputs.plugin_dir }}"
           git diff --staged --quiet && echo "No changes" && exit 0
-          git commit -m "auto: AI review + summaries + pre-flight for ${{ needs.detect.outputs.plugin_name }}"
+          git commit -m "auto: summaries + pre-flight for ${{ needs.detect.outputs.plugin_name }}"
           git push
 
       # ── Post combined report to PR ──
@@ -187,25 +170,14 @@ jobs:
             const fs = require('fs');
             const pluginName = '${{ needs.detect.outputs.plugin_name }}';
 
-            let reviewMd = '', summaryMd = '', skillSummaryMd = '', preflightMd = '';
-            let meta = {score: 'N/A', rec: 'manual', model: 'unknown', tokens: 'N/A'};
-            try { reviewMd = fs.readFileSync('/tmp/ai_review.md', 'utf8'); } catch(e) {}
-            try { meta = JSON.parse(fs.readFileSync('/tmp/ai_review_meta.json', 'utf8')); } catch(e) {}
+            let summaryMd = '', skillSummaryMd = '', preflightMd = '';
             try { summaryMd = fs.readFileSync('/tmp/summary_md.txt', 'utf8'); } catch(e) {}
             try { skillSummaryMd = fs.readFileSync('/tmp/skill_summary_md.txt', 'utf8'); } catch(e) {}
             try { preflightMd = fs.readFileSync('/tmp/preflight_injected.txt', 'utf8'); } catch(e) {}
 
-            const recMap = {ready: '✅ Ready to merge', changes: '🔍 Needs changes', caveats: '⚠️ Merge with caveats'};
-            const recText = recMap[meta.rec] || '👤 Manual review required';
-
             const sections = [];
-            sections.push(`## Phase 6: AI Review + Summary for \`${pluginName}\``);
-            sections.push(`> Score: **${meta.score}/100** | ${recText} | Model: \`${meta.model}\` | ${meta.tokens}`);
-            sections.push('', '---', '');
-
-            if (reviewMd) {
-              sections.push('<details open>', '<summary><strong>AI Code Review</strong></summary>', '', reviewMd, '', '</details>', '');
-            }
+            sections.push(`## Phase 6: Summary + Pre-flight for \`${pluginName}\``);
+            sections.push('', '> Review below. AI Code Review is in a separate check.', '', '---', '');
             if (summaryMd) {
               sections.push('<details>', '<summary><strong>SUMMARY.md</strong></summary>', '', summaryMd, '', '</details>', '');
             }
