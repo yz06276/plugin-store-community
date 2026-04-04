@@ -103,6 +103,13 @@ jobs:
           echo "$SKILL_CONTENT" > /tmp/skill_content.txt
           echo "found=true" >> "$GITHUB_OUTPUT"
 
+      # ── Jitter to avoid rate limits when multiple PRs approved at once ──
+      - name: Random jitter
+        run: |
+          JITTER=$(( RANDOM % 60 ))
+          echo "Waiting ${JITTER}s jitter..."
+          sleep "$JITTER"
+
       # ── Step 1: AI Code Review ──
       - name: AI Code Review
         if: steps.skill.outputs.found == 'true'
