@@ -396,6 +396,7 @@ jobs:
       - name: Create releases
         env:
           BUILD_PLUGINS: ${{ needs.detect.outputs.build_plugins_json }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           echo "$BUILD_PLUGINS" | jq -r '.[] | @base64' | while read ENCODED; do
             PLUGIN=$(echo "$ENCODED" | base64 -d)
